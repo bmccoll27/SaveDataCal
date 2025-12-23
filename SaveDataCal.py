@@ -15,6 +15,14 @@ def fsaveDataLimit(*args):
         pass
 
 
+def cardRemovol():
+    pass
+
+
+def cardAdding():
+    pass
+
+
 root = Tk()
 root.title("Save Data Cal")
 
