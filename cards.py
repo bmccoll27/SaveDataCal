@@ -1,9 +1,11 @@
 class Card:
-    def __init__(self, cost, tier, epiphany, divineEpiphany, points=0):
+    def __init__(self, name, cost, tier, epiphany, divineEpiphany, points=0, duplicate=False):
+        self.name = name
         self.cost = cost
         self.tier = tier
         self.epiphany = epiphany
         self.divineEpiphany = divineEpiphany
+        self.duplicate = duplicate
         self.points = points
 
     def total_points(self):
