@@ -1,5 +1,5 @@
 class Card:
-    def __init__(self, name, cost, tier, epiphany, divineEpiphany, points=0, duplicate=False):
+    def __init__(self, name, cost, tier, epiphany, divineEpiphany, points=0, duplicate=False, converted=False):
         self.name = name
         self.cost = cost
         self.tier = tier
@@ -7,6 +7,7 @@ class Card:
         self.divineEpiphany = divineEpiphany
         self.duplicate = duplicate
         self.points = points
+        self.converted = converted
 
     def total_points(self):
         if self.tier == 2:

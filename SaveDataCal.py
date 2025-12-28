@@ -74,15 +74,15 @@ ttk.Label(mainframe, text="Card Tier:").grid(column=1, row=7, sticky=E)
 ttk.Entry(mainframe, width=7, textvariable=card_tier).grid(
     column=2, row=7, sticky=(E, W))
 
-# Epiphany options are mutually exclusive, use radiobuttons
-card_flag = StringVar(value='none')
-ttk.Radiobutton(mainframe, text="Epiphany", variable=card_flag, value='epiphany').grid(
-    column=1, row=9, sticky=W)
-ttk.Radiobutton(mainframe, text="Divine Epiphany", variable=card_flag, value='divine').grid(
-    column=2, row=9, sticky=W)
+
+card_flag = StringVar(value='None')
+ttk.Label(mainframe, text="Epiphany:").grid(column=1, row=9, sticky=E)
+ttk.Combobox(mainframe, values=["None", "Epiphany", "Divine Epiphany"], textvariable=card_flag, state="readonly").grid(
+    column=2, row=9, columnspan=2, sticky=(W, E))
 card_dupe = tkinter.BooleanVar(value=False)
 ttk.Checkbutton(mainframe, text="Duplicate",
-                variable=card_dupe).grid(column=3, row=9, sticky=W)
+                variable=card_dupe).grid(column=4, row=9, sticky=W)
+
 # Deck state and helper UI
 current_deck = None
 deck_count_label = ttk.Label(mainframe, text="No deck created")
@@ -103,6 +103,9 @@ add_card_button.grid(column=3, row=6, sticky=W)
 edit_card_button = ttk.Button(
     mainframe, text="Edit Selected", command=lambda: edit_selected_card(), state="normal")
 edit_card_button.grid(column=1, row=14, sticky=W)
+convert_card_button = ttk.Button(
+    mainframe, text="Convert Selected", command=lambda: convert_selected_card(), state="normal")
+convert_card_button.grid(column=4, row=14, sticky=W)
 delete_card_button = ttk.Button(
     mainframe, text="Delete Selected", command=lambda: delete_selected_card(), state="normal")
 delete_card_button.grid(column=2, row=14, sticky=W)
@@ -141,7 +144,6 @@ def refresh_card_list():
 
 
 def add_card_from_gui():
-    """Read card inputs from the GUI and add a card to the current deck."""
     global current_deck
     if current_deck is None:
         deck_count_label.config(text="Create a deck first")
@@ -150,8 +152,8 @@ def add_card_from_gui():
         name = str(card_name.get())
         cost = int(card_cost.get())
         tier_val = int(card_tier.get())
-        ep = (card_flag.get() == 'epiphany')
-        de = (card_flag.get() == 'divine')
+        ep = (card_flag.get() == 'Epiphany')
+        de = (card_flag.get() == 'Divine Epiphany')
     except ValueError:
         deck_count_label.config(text="Invalid card input")
         return
@@ -193,6 +195,7 @@ def delete_selected_card():
         deck_count_label.config(text="Failed to delete card")
         return
     deck_count_label.config(text=f"Deck has {current_deck.card_count()} cards")
+    current_deck.reload_save_data()
     refresh_card_list()
 
 
@@ -227,9 +230,9 @@ def edit_selected_card():
     e_name = StringVar(value=str(card.name))
     e_cost = StringVar(value=str(card.cost))
     e_tier = StringVar(value=str(card.tier))
-    # use a radiobutton group for mutually exclusive epiphany flags
-    e_flag = StringVar(value=('epiphany' if card.epiphany else (
-        'divine' if card.divineEpiphany else 'none')))
+    # use a combobox for mutually exclusive epiphany flags (display labels)
+    e_flag = StringVar(value=('Epiphany' if card.epiphany else (
+        'Divine Epiphany' if card.divineEpiphany else 'None')))
     # keep Duplicate as an independent Checkbutton to match main UI
     e_dup = tkinter.BooleanVar(value=bool(getattr(card, 'duplicate', False)))
 
@@ -239,32 +242,70 @@ def edit_selected_card():
     ttk.Entry(win, textvariable=e_cost).grid(column=2, row=2, sticky=(W, E))
     ttk.Label(win, text="Tier:").grid(column=1, row=3, sticky=E)
     ttk.Entry(win, textvariable=e_tier).grid(column=2, row=3, sticky=(W, E))
-    ttk.Radiobutton(win, text="Epiphany", variable=e_flag, value='epiphany').grid(
-        column=1, row=4, sticky=W)
-    ttk.Radiobutton(win, text="Divine Epiphany", variable=e_flag, value='divine').grid(
-        column=2, row=4, sticky=W)
+    ttk.Label(win, text="Epiphany:").grid(column=1, row=4, sticky=E)
+    ttk.Combobox(win, values=["None", "Epiphany", "Divine Epiphany"], textvariable=e_flag, state="readonly").grid(
+        column=2, row=4, sticky=(W, E))
     ttk.Checkbutton(win, text="Duplicate", variable=e_dup).grid(
         column=1, row=5, sticky=W)
-    ttk.Radiobutton(win, text="None", variable=e_flag, value='none').grid(
-        column=2, row=5, sticky=W)
 
     def save_edits():
         try:
             card.name = str(e_name.get())
             card.cost = int(e_cost.get())
             card.tier = int(e_tier.get())
-            card.epiphany = (e_flag.get() == 'epiphany')
-            card.divineEpiphany = (e_flag.get() == 'divine')
+            card.epiphany = (e_flag.get() == 'Epiphany')
+            card.divineEpiphany = (e_flag.get() == 'Divine Epiphany')
             card.duplicate = bool(e_dup.get())
         except ValueError:
             deck_count_label.config(text="Invalid input in edit")
             return
+        current_deck.reload_save_data()
         refresh_card_list()
         deck_count_label.config(text=f"Edited card {idx+1}")
         win.destroy()
 
     ttk.Button(win, text="Save", command=save_edits).grid(
         column=2, row=6, sticky=E)
+
+
+def convert_selected_card():
+    idx, card = get_selected_card()
+    if card is None:
+        deck_count_label.config(text="Select a card to convert")
+        return
+    win = Toplevel(root)
+    win.title(f"Convert Card {idx+1}")
+    c_name = StringVar(value=str(card.name))
+    c_cost = StringVar(value=str(card.cost))
+    c_flag = StringVar(value=('Epiphany' if card.epiphany else (
+        'Divine Epiphany' if card.divineEpiphany else 'None')))
+    c_dup = tkinter.BooleanVar(value=bool(getattr(card, 'duplicate', False)))
+    ttk.Label(win, text="Name:").grid(column=1, row=1, sticky=E)
+    ttk.Entry(win, textvariable=c_name).grid(column=2, row=1, sticky=(W, E))
+    ttk.Label(win, text="Cost:").grid(column=1, row=2, sticky=E)
+    ttk.Entry(win, textvariable=c_cost).grid(column=2, row=2, sticky=(W, E))
+    ttk.Label(win, text="Epiphany:").grid(column=1, row=3, sticky=E)
+    ttk.Combobox(win, values=["None", "Epiphany", "Divine Epiphany"], textvariable=c_flag, state="readonly").grid(
+        column=2, row=3, sticky=(W, E))
+    ttk.Checkbutton(win, text="Duplicate", variable=c_dup).grid(
+        column=1, row=4, sticky=W)
+
+    def save_conversion():
+        try:
+            card.name = str(c_name.get())
+            card.cost = int(c_cost.get())
+            card.epiphany = (c_flag.get() == 'Epiphany')
+            card.divineEpiphany = (c_flag.get() == 'Divine Epiphany')
+            card.duplicate = bool(c_dup.get())
+        except ValueError:
+            deck_count_label.config(text="Invalid input in conversion")
+            return
+        current_deck.card_conversion_points(card)
+        refresh_card_list()
+        deck_count_label.config(text=f"Converted card {idx+1}")
+        win.destroy()
+    ttk.Button(win, text="Convert", command=save_conversion).grid(
+        column=2, row=5, sticky=E)
 
 
 root.bind("<Return>", fsaveDataLimit)
