@@ -74,19 +74,25 @@ ttk.Label(mainframe, text="Card Tier:").grid(column=1, row=7, sticky=E)
 ttk.Entry(mainframe, width=7, textvariable=card_tier).grid(
     column=2, row=7, sticky=(E, W))
 
-card_epiphany = tkinter.BooleanVar(value=False)
-ttk.Checkbutton(mainframe, text="Epiphany", variable=card_epiphany).grid(
+# Epiphany options are mutually exclusive, use radiobuttons
+card_flag = StringVar(value='none')
+ttk.Radiobutton(mainframe, text="Epiphany", variable=card_flag, value='epiphany').grid(
     column=1, row=9, sticky=W)
-card_divine = tkinter.BooleanVar(value=False)
-ttk.Checkbutton(mainframe, text="Divine Epiphany",
-                variable=card_divine).grid(column=2, row=9, sticky=W)
+ttk.Radiobutton(mainframe, text="Divine Epiphany", variable=card_flag, value='divine').grid(
+    column=2, row=9, sticky=W)
 card_dupe = tkinter.BooleanVar(value=False)
 ttk.Checkbutton(mainframe, text="Duplicate",
                 variable=card_dupe).grid(column=3, row=9, sticky=W)
 # Deck state and helper UI
 current_deck = None
 deck_count_label = ttk.Label(mainframe, text="No deck created")
-deck_count_label.grid(column=1, row=8, columnspan=2, sticky=(W, E))
+deck_count_label.grid(column=1, row=11, columnspan=2, sticky=(W, E))
+ttk.Label(mainframe, text="""Card Tiers: 
+1 = Character Unique cards
+2 = Common cards
+3 = Monster cards 
+4 = Forbidden cards""").grid(
+    column=1, row=10, sticky=W)
 
 # Single Add Card button (created once, enabled after deck creation)
 add_card_button = ttk.Button(
@@ -96,23 +102,23 @@ add_card_button.grid(column=3, row=6, sticky=W)
 # Edit / Delete / Remove buttons
 edit_card_button = ttk.Button(
     mainframe, text="Edit Selected", command=lambda: edit_selected_card(), state="normal")
-edit_card_button.grid(column=1, row=12, sticky=W)
+edit_card_button.grid(column=1, row=14, sticky=W)
 delete_card_button = ttk.Button(
     mainframe, text="Delete Selected", command=lambda: delete_selected_card(), state="normal")
-delete_card_button.grid(column=2, row=12, sticky=W)
+delete_card_button.grid(column=2, row=14, sticky=W)
 remove_card_button = ttk.Button(
     mainframe, text="Remove Selected", command=lambda: remove_selected_card(), state="normal")
-remove_card_button.grid(column=3, row=12, sticky=W)
+remove_card_button.grid(column=3, row=14, sticky=W)
 
 # Listbox showing cards in current deck and average cost
 card_listbox = Listbox(mainframe, height=8)
-card_listbox.grid(column=1, row=10, columnspan=3, sticky=(W, E))
+card_listbox.grid(column=1, row=12, columnspan=3, sticky=(W, E))
 
 avg_cost_label = ttk.Label(mainframe, text="Avg cost: 0")
-avg_cost_label.grid(column=1, row=11, columnspan=2, sticky=W)
+avg_cost_label.grid(column=1, row=13, columnspan=2, sticky=W)
 
 faint_memory_label = ttk.Label(mainframe, text="Faint Memory: N/A")
-faint_memory_label.grid(column=3, row=11, sticky=W)
+faint_memory_label.grid(column=3, row=13, sticky=W)
 
 
 def refresh_card_list():
@@ -144,8 +150,8 @@ def add_card_from_gui():
         name = str(card_name.get())
         cost = int(card_cost.get())
         tier_val = int(card_tier.get())
-        ep = bool(card_epiphany.get())
-        de = bool(card_divine.get())
+        ep = (card_flag.get() == 'epiphany')
+        de = (card_flag.get() == 'divine')
     except ValueError:
         deck_count_label.config(text="Invalid card input")
         return
@@ -221,8 +227,10 @@ def edit_selected_card():
     e_name = StringVar(value=str(card.name))
     e_cost = StringVar(value=str(card.cost))
     e_tier = StringVar(value=str(card.tier))
-    e_ep = tkinter.BooleanVar(value=bool(card.epiphany))
-    e_de = tkinter.BooleanVar(value=bool(card.divineEpiphany))
+    # use a radiobutton group for mutually exclusive epiphany flags
+    e_flag = StringVar(value=('epiphany' if card.epiphany else (
+        'divine' if card.divineEpiphany else 'none')))
+    # keep Duplicate as an independent Checkbutton to match main UI
     e_dup = tkinter.BooleanVar(value=bool(getattr(card, 'duplicate', False)))
 
     ttk.Label(win, text="Name:").grid(column=1, row=1, sticky=E)
@@ -231,20 +239,22 @@ def edit_selected_card():
     ttk.Entry(win, textvariable=e_cost).grid(column=2, row=2, sticky=(W, E))
     ttk.Label(win, text="Tier:").grid(column=1, row=3, sticky=E)
     ttk.Entry(win, textvariable=e_tier).grid(column=2, row=3, sticky=(W, E))
-    ttk.Checkbutton(win, text="Epiphany", variable=e_ep).grid(
+    ttk.Radiobutton(win, text="Epiphany", variable=e_flag, value='epiphany').grid(
         column=1, row=4, sticky=W)
-    ttk.Checkbutton(win, text="Divine Epiphany", variable=e_de).grid(
+    ttk.Radiobutton(win, text="Divine Epiphany", variable=e_flag, value='divine').grid(
         column=2, row=4, sticky=W)
     ttk.Checkbutton(win, text="Duplicate", variable=e_dup).grid(
         column=1, row=5, sticky=W)
+    ttk.Radiobutton(win, text="None", variable=e_flag, value='none').grid(
+        column=2, row=5, sticky=W)
 
     def save_edits():
         try:
             card.name = str(e_name.get())
             card.cost = int(e_cost.get())
             card.tier = int(e_tier.get())
-            card.epiphany = bool(e_ep.get())
-            card.divineEpiphany = bool(e_de.get())
+            card.epiphany = (e_flag.get() == 'epiphany')
+            card.divineEpiphany = (e_flag.get() == 'divine')
             card.duplicate = bool(e_dup.get())
         except ValueError:
             deck_count_label.config(text="Invalid input in edit")

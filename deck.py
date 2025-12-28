@@ -24,11 +24,11 @@ class Deck:
                               cost=cost, tier=tier,
                               epiphany=epiphany, divineEpiphany=divineEpiphany, duplicate=duplicate)
         if new_card.duplicate:
-            self.numberDuplicated += 1
             if self.numberDuplicated <= len(self.pelanty):
-                self.saveDataValue += self.pelanty[self.numberDuplicated - 1]
+                self.saveDataValue += self.pelanty[self.numberDuplicated]
             else:
                 self.saveDataValue += 70
+            self.numberDuplicated += 1
 
         self.cards.append(new_card)
 
